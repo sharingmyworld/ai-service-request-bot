@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 from sqlalchemy.orm import Session
 
 from app.models.admin_user import AdminUser
@@ -12,8 +14,12 @@ def test_admin_user_can_be_saved(
 ) -> None:
     plain_password = "StrongAdminPassword123!"
 
+    username = (
+        f"model-admin-{uuid4().hex}"
+    )
+
     admin_user = AdminUser(
-        username="portfolio-admin",
+        username=username,
         password_hash=hash_password(
             plain_password
         ),
@@ -24,7 +30,7 @@ def test_admin_user_can_be_saved(
     database_session.refresh(admin_user)
 
     assert admin_user.id > 0
-    assert admin_user.username == "portfolio-admin"
+    assert admin_user.username == username
     assert admin_user.is_active is True
     assert admin_user.created_at is not None
     assert admin_user.password_hash != plain_password

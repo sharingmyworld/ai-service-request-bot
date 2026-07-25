@@ -1,6 +1,9 @@
 from app.services.admin_service import (
+    AdminCurrentPasswordInvalidError,
+    AdminPasswordReuseError,
     AdminUsernameAlreadyExistsError,
     AdminValidationError,
+    change_admin_password,
     create_admin_user,
 )
 from app.services.openai_service import (
@@ -27,6 +30,8 @@ from app.services.token_service import (
 
 
 __all__ = [
+    "AdminCurrentPasswordInvalidError",
+    "AdminPasswordReuseError",
     "AdminUsernameAlreadyExistsError",
     "AdminValidationError",
     "AIAnalysisError",
@@ -38,6 +43,7 @@ __all__ = [
     "TokenConfigurationError",
     "TokenExpiredError",
     "TokenValidationError",
+    "change_admin_password",
     "create_access_token",
     "create_admin_user",
     "decode_access_token",

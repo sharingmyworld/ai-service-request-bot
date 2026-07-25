@@ -9,7 +9,11 @@ from app.schemas.ai_analysis import (
     ProblemCategory,
     UrgencyLevel,
 )
-from app.schemas.auth import AccessTokenResponse
+from app.schemas.auth import (
+    AccessTokenResponse,
+    PasswordChangeRequest,
+    PasswordChangeResponse,
+)
 from app.schemas.service_request import (
     ServiceRequestCreate,
     ServiceRequestRead,
@@ -28,6 +32,8 @@ __all__ = [
     "ActivityLogRead",
     "AdminUserRead",
     "AIServiceRequestAnalysis",
+    "PasswordChangeRequest",
+    "PasswordChangeResponse",
     "ProblemCategory",
     "ServiceRequestApprove",
     "ServiceRequestCreate",

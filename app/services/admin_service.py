@@ -3,7 +3,10 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.models.admin_user import AdminUser
-from app.services.password_service import hash_password
+from app.services.password_service import (
+    hash_password,
+    verify_password,
+)
 
 
 class AdminValidationError(ValueError):
@@ -12,6 +15,14 @@ class AdminValidationError(ValueError):
 
 class AdminUsernameAlreadyExistsError(RuntimeError):
     """Raised when the administrator username is already used."""
+
+
+class AdminCurrentPasswordInvalidError(RuntimeError):
+    """Raised when the current administrator password is invalid."""
+
+
+class AdminPasswordReuseError(RuntimeError):
+    """Raised when the new password matches the current password."""
 
 
 def validate_admin_username(username: str) -> str:
@@ -81,6 +92,50 @@ def create_admin_user(
         raise AdminUsernameAlreadyExistsError(
             "Administrator username already exists"
         ) from error
+
+    except SQLAlchemyError:
+        database_session.rollback()
+        raise
+
+    return admin_user
+
+
+def change_admin_password(
+    database_session: Session,
+    admin_user: AdminUser,
+    current_password: str,
+    new_password: str,
+) -> AdminUser:
+    current_password_is_valid = verify_password(
+        plain_password=current_password,
+        hashed_password=admin_user.password_hash,
+    )
+
+    if not current_password_is_valid:
+        raise AdminCurrentPasswordInvalidError(
+            "Current password is incorrect"
+        )
+
+    validate_admin_password(new_password)
+
+    new_password_matches_current = verify_password(
+        plain_password=new_password,
+        hashed_password=admin_user.password_hash,
+    )
+
+    if new_password_matches_current:
+        raise AdminPasswordReuseError(
+            "New password must be different "
+            "from the current password"
+        )
+
+    admin_user.password_hash = hash_password(
+        new_password
+    )
+
+    try:
+        database_session.commit()
+        database_session.refresh(admin_user)
 
     except SQLAlchemyError:
         database_session.rollback()

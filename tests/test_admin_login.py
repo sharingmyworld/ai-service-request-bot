@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -12,6 +14,8 @@ TEST_JWT_SECRET = (
     "test-jwt-secret-key-that-is-long-enough-"
     "for-admin-login-tests-123456789"
 )
+
+TEST_ADMIN_PASSWORD = "StrongAdminPassword123!"
 
 
 @pytest.fixture
@@ -39,12 +43,18 @@ def configured_jwt(
 
 def create_admin_user(
     database_session: Session,
-    username: str = "portfolio-admin",
-    password: str = "StrongAdminPassword123!",
+    username: str | None = None,
+    password: str = TEST_ADMIN_PASSWORD,
     is_active: bool = True,
 ) -> AdminUser:
+    resolved_username = (
+        username
+        if username is not None
+        else f"login-admin-{uuid4().hex}"
+    )
+
     admin_user = AdminUser(
-        username=username,
+        username=resolved_username,
         password_hash=hash_password(password),
         is_active=is_active,
     )
@@ -68,8 +78,8 @@ def test_admin_can_log_in(
     response = client.post(
         "/auth/login",
         data={
-            "username": "portfolio-admin",
-            "password": "StrongAdminPassword123!",
+            "username": admin_user.username,
+            "password": TEST_ADMIN_PASSWORD,
         },
     )
 
@@ -78,10 +88,12 @@ def test_admin_can_log_in(
     response_data = response.json()
 
     assert response_data["token_type"] == "bearer"
+
     assert isinstance(
         response_data["access_token"],
         str,
     )
+
     assert response_data["access_token"]
 
     token_subject = decode_access_token(
@@ -98,42 +110,54 @@ def test_admin_login_rejects_wrong_password(
     database_session: Session,
     configured_jwt: None,
 ) -> None:
-    create_admin_user(
+    admin_user = create_admin_user(
         database_session
     )
 
     response = client.post(
         "/auth/login",
         data={
-            "username": "portfolio-admin",
+            "username": admin_user.username,
             "password": "WrongPassword123!",
         },
     )
 
     assert response.status_code == 401
+
     assert response.json() == {
         "detail": "Incorrect username or password"
     }
-    assert response.headers["www-authenticate"] == "Bearer"
+
+    assert response.headers["www-authenticate"] == (
+        "Bearer"
+    )
 
 
 def test_admin_login_rejects_unknown_username(
     client: TestClient,
     configured_jwt: None,
 ) -> None:
+    unknown_username = (
+        f"unknown-admin-{uuid4().hex}"
+    )
+
     response = client.post(
         "/auth/login",
         data={
-            "username": "unknown-admin",
-            "password": "StrongAdminPassword123!",
+            "username": unknown_username,
+            "password": TEST_ADMIN_PASSWORD,
         },
     )
 
     assert response.status_code == 401
+
     assert response.json() == {
         "detail": "Incorrect username or password"
     }
-    assert response.headers["www-authenticate"] == "Bearer"
+
+    assert response.headers["www-authenticate"] == (
+        "Bearer"
+    )
 
 
 def test_inactive_admin_cannot_log_in(
@@ -141,21 +165,26 @@ def test_inactive_admin_cannot_log_in(
     database_session: Session,
     configured_jwt: None,
 ) -> None:
-    create_admin_user(
+    admin_user = create_admin_user(
         database_session,
-        username="inactive-admin",
+        username=(
+            f"inactive-admin-{uuid4().hex}"
+        ),
         is_active=False,
     )
 
     response = client.post(
         "/auth/login",
         data={
-            "username": "inactive-admin",
-            "password": "StrongAdminPassword123!",
+            "username": admin_user.username,
+            "password": TEST_ADMIN_PASSWORD,
         },
     )
 
     assert response.status_code == 403
+
     assert response.json() == {
-        "detail": "Administrator account is inactive"
+        "detail": (
+            "Administrator account is inactive"
+        )
     }
