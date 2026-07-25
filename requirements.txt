@@ -6,5 +6,6 @@ sqlalchemy
 alembic
 psycopg[binary]
 openai
+pwdlib[argon2]
 pytest
 httpx

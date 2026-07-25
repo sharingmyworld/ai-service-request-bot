@@ -3,6 +3,10 @@ from app.services.openai_service import (
     OpenAIConfigurationError,
     OpenAIService,
 )
+from app.services.password_service import (
+    hash_password,
+    verify_password,
+)
 from app.services.telegram_service import (
     TelegramAPIError,
     TelegramConfigurationError,
@@ -17,4 +21,6 @@ __all__ = [
     "TelegramAPIError",
     "TelegramConfigurationError",
     "TelegramService",
+    "hash_password",
+    "verify_password",
 ]
