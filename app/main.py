@@ -3,6 +3,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.database import engine
+from app.routers.auth import router as auth_router
 from app.routers.service_requests import (
     router as service_requests_router,
 )
@@ -21,6 +22,7 @@ app = FastAPI(
 )
 
 
+app.include_router(auth_router)
 app.include_router(service_requests_router)
 app.include_router(telegram_webhook_router)
 

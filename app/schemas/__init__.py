@@ -3,11 +3,13 @@ from app.schemas.admin_review import (
     ServiceRequestApprove,
     ServiceRequestReject,
 )
+from app.schemas.admin_user import AdminUserRead
 from app.schemas.ai_analysis import (
     AIServiceRequestAnalysis,
     ProblemCategory,
     UrgencyLevel,
 )
+from app.schemas.auth import AccessTokenResponse
 from app.schemas.service_request import (
     ServiceRequestCreate,
     ServiceRequestRead,
@@ -22,7 +24,9 @@ from app.schemas.telegram_update import (
 
 
 __all__ = [
+    "AccessTokenResponse",
     "ActivityLogRead",
+    "AdminUserRead",
     "AIServiceRequestAnalysis",
     "ProblemCategory",
     "ServiceRequestApprove",

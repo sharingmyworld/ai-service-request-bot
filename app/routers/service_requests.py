@@ -7,6 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.dependencies.auth import CurrentAdmin
 from app.models.activity_log import ActivityLog
 from app.models.service_request import (
     ServiceRequest,
@@ -285,6 +286,7 @@ def analyze_service_request(
 def approve_service_request(
     request_id: int,
     review_data: ServiceRequestApprove,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
 ) -> ServiceRequest:
     service_request = get_service_request_or_404(
@@ -320,8 +322,9 @@ def approve_service_request(
         service_request_id=service_request.id,
         action="service_request_approved",
         actor_type="admin",
-        actor_id=review_data.admin_id,
+        actor_id=str(current_admin.id),
         details={
+            "admin_username": current_admin.username,
             "response_edited": response_edited,
         },
     )
@@ -349,6 +352,7 @@ def approve_service_request(
 def reject_service_request(
     request_id: int,
     review_data: ServiceRequestReject,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
 ) -> ServiceRequest:
     service_request = get_service_request_or_404(
@@ -367,8 +371,9 @@ def reject_service_request(
         service_request_id=service_request.id,
         action="service_request_rejected",
         actor_type="admin",
-        actor_id=review_data.admin_id,
+        actor_id=str(current_admin.id),
         details={
+            "admin_username": current_admin.username,
             "reason": review_data.reason,
         },
     )
@@ -395,6 +400,7 @@ def reject_service_request(
 )
 def send_approved_response(
     request_id: int,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
     telegram_service: TelegramBotService,
 ) -> ServiceRequest:
@@ -428,9 +434,10 @@ def send_approved_response(
     activity_log = ActivityLog(
         service_request_id=service_request.id,
         action="telegram_message_sent",
-        actor_type="telegram_bot",
-        actor_id=None,
+        actor_type="admin",
+        actor_id=str(current_admin.id),
         details={
+            "admin_username": current_admin.username,
             "telegram_chat_id": (
                 service_request.telegram_chat_id
             ),

@@ -31,6 +31,7 @@ AI_DRAFT_RESPONSE = (
 
 def test_complete_service_request_workflow(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     app.dependency_overrides[
         get_configured_telegram_webhook_secret
@@ -128,9 +129,8 @@ def test_complete_service_request_workflow(
 
     approval_response = client.post(
         f"/service-requests/{request_id}/approve",
-        json={
-            "admin_id": "admin-integration-test",
-        },
+        headers=admin_auth["headers"],
+        json={},
     )
 
     assert approval_response.status_code == 200
@@ -143,7 +143,8 @@ def test_complete_service_request_workflow(
     )
 
     send_response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert send_response.status_code == 200
@@ -187,14 +188,22 @@ def test_complete_service_request_workflow(
     approval_log = activity_logs[2]
 
     assert approval_log["actor_type"] == "admin"
-    assert approval_log["actor_id"] == (
-        "admin-integration-test"
+    assert approval_log["actor_id"] == str(
+        admin_auth["admin_id"]
     )
+    assert approval_log["details"] == {
+        "admin_username": admin_auth["username"],
+        "response_edited": False,
+    }
 
     delivery_log = activity_logs[3]
 
-    assert delivery_log["actor_type"] == "telegram_bot"
+    assert delivery_log["actor_type"] == "admin"
+    assert delivery_log["actor_id"] == str(
+        admin_auth["admin_id"]
+    )
     assert delivery_log["details"] == {
+        "admin_username": admin_auth["username"],
         "telegram_chat_id": 123456789,
         "telegram_message_id": 9001,
     }

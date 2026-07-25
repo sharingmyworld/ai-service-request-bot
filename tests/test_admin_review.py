@@ -74,14 +74,14 @@ def create_drafted_service_request(
 
 def test_approve_service_request_uses_ai_draft(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     request_id = create_drafted_service_request(client)
 
     response = client.post(
         f"/service-requests/{request_id}/approve",
-        json={
-            "admin_id": "admin-1",
-        },
+        headers=admin_auth["headers"],
+        json={},
     )
 
     assert response.status_code == 200
@@ -106,14 +106,18 @@ def test_approve_service_request_uses_ai_draft(
         "service_request_approved"
     )
     assert approval_log["actor_type"] == "admin"
-    assert approval_log["actor_id"] == "admin-1"
+    assert approval_log["actor_id"] == str(
+        admin_auth["admin_id"]
+    )
     assert approval_log["details"] == {
+        "admin_username": admin_auth["username"],
         "response_edited": False,
     }
 
 
 def test_approve_service_request_allows_edited_response(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     request_id = create_drafted_service_request(client)
 
@@ -125,8 +129,8 @@ def test_approve_service_request_allows_edited_response(
 
     response = client.post(
         f"/service-requests/{request_id}/approve",
+        headers=admin_auth["headers"],
         json={
-            "admin_id": "admin-2",
             "approved_response": edited_response,
         },
     )
@@ -144,23 +148,27 @@ def test_approve_service_request_allows_edited_response(
     approval_log = activity_response.json()[-1]
 
     assert approval_log["details"] == {
+        "admin_username": admin_auth["username"],
         "response_edited": True,
     }
 
 
 def test_reject_service_request_saves_reason(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     request_id = create_drafted_service_request(client)
 
+    rejection_reason = (
+        "The draft promises an action "
+        "that has not been confirmed."
+    )
+
     response = client.post(
         f"/service-requests/{request_id}/reject",
+        headers=admin_auth["headers"],
         json={
-            "admin_id": "admin-3",
-            "reason": (
-                "The draft promises an action "
-                "that has not been confirmed."
-            ),
+            "reason": rejection_reason,
         },
     )
 
@@ -184,17 +192,18 @@ def test_reject_service_request_saves_reason(
         "service_request_rejected"
     )
     assert rejection_log["actor_type"] == "admin"
-    assert rejection_log["actor_id"] == "admin-3"
+    assert rejection_log["actor_id"] == str(
+        admin_auth["admin_id"]
+    )
     assert rejection_log["details"] == {
-        "reason": (
-            "The draft promises an action "
-            "that has not been confirmed."
-        ),
+        "admin_username": admin_auth["username"],
+        "reason": rejection_reason,
     }
 
 
 def test_approve_rejects_request_that_is_not_drafted(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     create_response = client.post(
         "/service-requests",
@@ -213,9 +222,8 @@ def test_approve_rejects_request_that_is_not_drafted(
 
     response = client.post(
         f"/service-requests/{request_id}/approve",
-        json={
-            "admin_id": "admin-1",
-        },
+        headers=admin_auth["headers"],
+        json={},
     )
 
     assert response.status_code == 409
@@ -229,15 +237,41 @@ def test_approve_rejects_request_that_is_not_drafted(
 
 def test_approve_returns_404_for_missing_request(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     response = client.post(
         "/service-requests/999999999/approve",
-        json={
-            "admin_id": "admin-1",
-        },
+        headers=admin_auth["headers"],
+        json={},
     )
 
     assert response.status_code == 404
     assert response.json() == {
         "detail": "Service request not found"
     }
+
+
+def test_approve_requires_authentication(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/service-requests/999999999/approve",
+        json={},
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_reject_requires_authentication(
+    client: TestClient,
+) -> None:
+    response = client.post(
+        "/service-requests/999999999/reject",
+        json={
+            "reason": "The draft must be reviewed again."
+        },
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"

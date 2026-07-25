@@ -7,5 +7,7 @@ alembic
 psycopg[binary]
 openai
 pwdlib[argon2]
+pyjwt
+python-multipart
 pytest
 httpx

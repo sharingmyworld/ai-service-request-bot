@@ -7,11 +7,6 @@ class ServiceRequestApprove(BaseModel):
         str_strip_whitespace=True,
     )
 
-    admin_id: str = Field(
-        min_length=1,
-        max_length=100,
-    )
-
     approved_response: str | None = Field(
         default=None,
         min_length=10,
@@ -23,11 +18,6 @@ class ServiceRequestReject(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
         str_strip_whitespace=True,
-    )
-
-    admin_id: str = Field(
-        min_length=1,
-        max_length=100,
     )
 
     reason: str = Field(

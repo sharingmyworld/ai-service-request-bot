@@ -1,6 +1,7 @@
 from unittest.mock import Mock
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from app.main import app
 from app.models.service_request import (
@@ -23,8 +24,7 @@ APPROVED_RESPONSE = (
 
 
 def create_approved_service_request(
-    client: TestClient,
-    database_session,
+    database_session: Session,
 ) -> int:
     service_request = ServiceRequest(
         telegram_chat_id=123456789,
@@ -49,11 +49,11 @@ def create_approved_service_request(
 
 def test_send_approved_response_uses_telegram_service(
     client: TestClient,
-    database_session,
+    database_session: Session,
+    admin_auth: dict,
 ) -> None:
     request_id = create_approved_service_request(
-        client,
-        database_session,
+        database_session
     )
 
     mock_telegram_service = Mock(
@@ -67,7 +67,8 @@ def test_send_approved_response_uses_telegram_service(
     ] = lambda: mock_telegram_service
 
     response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert response.status_code == 200
@@ -100,9 +101,12 @@ def test_send_approved_response_uses_telegram_service(
     assert delivery_log["action"] == (
         "telegram_message_sent"
     )
-    assert delivery_log["actor_type"] == "telegram_bot"
-    assert delivery_log["actor_id"] is None
+    assert delivery_log["actor_type"] == "admin"
+    assert delivery_log["actor_id"] == str(
+        admin_auth["admin_id"]
+    )
     assert delivery_log["details"] == {
+        "admin_username": admin_auth["username"],
         "telegram_chat_id": 123456789,
         "telegram_message_id": 456,
     }
@@ -110,6 +114,7 @@ def test_send_approved_response_uses_telegram_service(
 
 def test_send_response_returns_409_when_not_approved(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     create_response = client.post(
         "/service-requests",
@@ -135,7 +140,8 @@ def test_send_response_returns_409_when_not_approved(
     ] = lambda: mock_telegram_service
 
     response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert response.status_code == 409
@@ -151,6 +157,7 @@ def test_send_response_returns_409_when_not_approved(
 
 def test_send_response_returns_404_when_request_missing(
     client: TestClient,
+    admin_auth: dict,
 ) -> None:
     mock_telegram_service = Mock(
         spec=TelegramService
@@ -161,7 +168,8 @@ def test_send_response_returns_404_when_request_missing(
     ] = lambda: mock_telegram_service
 
     response = client.post(
-        "/service-requests/999999999/send"
+        "/service-requests/999999999/send",
+        headers=admin_auth["headers"],
     )
 
     assert response.status_code == 404
@@ -174,11 +182,11 @@ def test_send_response_returns_404_when_request_missing(
 
 def test_send_response_returns_503_when_telegram_fails(
     client: TestClient,
-    database_session,
+    database_session: Session,
+    admin_auth: dict,
 ) -> None:
     request_id = create_approved_service_request(
-        client,
-        database_session,
+        database_session
     )
 
     mock_telegram_service = Mock(
@@ -196,7 +204,8 @@ def test_send_response_returns_503_when_telegram_fails(
     ] = lambda: mock_telegram_service
 
     response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert response.status_code == 503
@@ -221,11 +230,11 @@ def test_send_response_returns_503_when_telegram_fails(
 
 def test_sent_response_cannot_be_sent_again(
     client: TestClient,
-    database_session,
+    database_session: Session,
+    admin_auth: dict,
 ) -> None:
     request_id = create_approved_service_request(
-        client,
-        database_session,
+        database_session
     )
 
     mock_telegram_service = Mock(
@@ -239,14 +248,16 @@ def test_sent_response_cannot_be_sent_again(
     ] = lambda: mock_telegram_service
 
     first_response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert first_response.status_code == 200
     assert first_response.json()["status"] == "sent"
 
     second_response = client.post(
-        f"/service-requests/{request_id}/send"
+        f"/service-requests/{request_id}/send",
+        headers=admin_auth["headers"],
     )
 
     assert second_response.status_code == 409
@@ -258,3 +269,29 @@ def test_sent_response_cannot_be_sent_again(
     }
 
     mock_telegram_service.send_message.assert_called_once()
+
+
+def test_send_response_requires_authentication(
+    client: TestClient,
+    database_session: Session,
+) -> None:
+    request_id = create_approved_service_request(
+        database_session
+    )
+
+    mock_telegram_service = Mock(
+        spec=TelegramService
+    )
+
+    app.dependency_overrides[
+        provide_telegram_service
+    ] = lambda: mock_telegram_service
+
+    response = client.post(
+        f"/service-requests/{request_id}/send"
+    )
+
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+    mock_telegram_service.send_message.assert_not_called()
