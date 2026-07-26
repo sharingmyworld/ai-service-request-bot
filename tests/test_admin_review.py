@@ -252,9 +252,9 @@ def test_approve_returns_404_for_missing_request(
 
 
 def test_approve_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.post(
+    response = anonymous_client.post(
         "/service-requests/999999999/approve",
         json={},
     )
@@ -264,9 +264,9 @@ def test_approve_requires_authentication(
 
 
 def test_reject_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.post(
+    response = anonymous_client.post(
         "/service-requests/999999999/reject",
         json={
             "reason": "The draft must be reviewed again."

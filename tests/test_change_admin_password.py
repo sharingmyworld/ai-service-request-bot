@@ -159,9 +159,9 @@ def test_password_change_rejects_reused_password(
 
 
 def test_password_change_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.post(
+    response = anonymous_client.post(
         "/auth/change-password",
         json={
             "current_password": CURRENT_PASSWORD,

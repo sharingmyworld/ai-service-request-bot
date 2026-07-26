@@ -18,9 +18,9 @@ def get_count(
 
 
 def test_admin_dashboard_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.get(
+    response = anonymous_client.get(
         "/admin/dashboard"
     )
 

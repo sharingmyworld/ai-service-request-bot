@@ -272,7 +272,7 @@ def test_sent_response_cannot_be_sent_again(
 
 
 def test_send_response_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
     database_session: Session,
 ) -> None:
     request_id = create_approved_service_request(
@@ -287,7 +287,7 @@ def test_send_response_requires_authentication(
         provide_telegram_service
     ] = lambda: mock_telegram_service
 
-    response = client.post(
+    response = anonymous_client.post(
         f"/service-requests/{request_id}/send"
     )
 

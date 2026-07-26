@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -37,21 +38,6 @@ def database_session() -> Generator[Session, None, None]:
 
 
 @pytest.fixture
-def client(
-    database_session: Session,
-) -> Generator[TestClient, None, None]:
-    def override_get_db() -> Generator[Session, None, None]:
-        yield database_session
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    with TestClient(app) as test_client:
-        yield test_client
-
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture
 def admin_auth(
     database_session: Session,
     monkeypatch: pytest.MonkeyPatch,
@@ -75,7 +61,9 @@ def admin_auth(
     )
 
     admin_user = AdminUser(
-        username="protected-endpoint-admin",
+        username=(
+            f"protected-admin-{uuid4().hex}"
+        ),
         password_hash=(
             "not-used-in-protected-endpoint-tests"
         ),
@@ -99,3 +87,38 @@ def admin_auth(
             )
         },
     }
+
+
+@pytest.fixture
+def client(
+    database_session: Session,
+    admin_auth: dict,
+) -> Generator[TestClient, None, None]:
+    def override_get_db() -> Generator[Session, None, None]:
+        yield database_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        test_client.headers.update(
+            admin_auth["headers"]
+        )
+
+        yield test_client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def anonymous_client(
+    database_session: Session,
+) -> Generator[TestClient, None, None]:
+    def override_get_db() -> Generator[Session, None, None]:
+        yield database_session
+
+    app.dependency_overrides[get_db] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()

@@ -98,10 +98,10 @@ def test_authenticated_admin_can_read_own_profile(
 
 
 def test_current_admin_requires_access_token(
-    client: TestClient,
+    anonymous_client: TestClient,
     configured_jwt: None,
 ) -> None:
-    response = client.get(
+    response = anonymous_client.get(
         "/auth/me"
     )
 

@@ -39,9 +39,9 @@ def create_service_request(
 
 
 def test_admin_service_request_details_require_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.get(
+    response = anonymous_client.get(
         "/admin/service-requests/1"
     )
 
@@ -102,9 +102,9 @@ def test_admin_service_request_details_return_404(
 
 
 def test_admin_activity_logs_require_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.get(
+    response = anonymous_client.get(
         "/admin/service-requests/1/activity-logs"
     )
 

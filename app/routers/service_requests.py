@@ -184,6 +184,7 @@ def create_service_request(
     response_model=list[ServiceRequestRead],
 )
 def get_service_requests(
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
 ) -> list[ServiceRequest]:
     statement = (
@@ -204,6 +205,7 @@ def get_service_requests(
 )
 def get_service_request(
     request_id: int,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
 ) -> ServiceRequest:
     return get_service_request_or_404(
@@ -218,6 +220,7 @@ def get_service_request(
 )
 def analyze_service_request(
     request_id: int,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
     ai_service: AIService,
 ) -> ServiceRequest:
@@ -467,6 +470,7 @@ def send_approved_response(
 )
 def get_service_request_activity_logs(
     request_id: int,
+    current_admin: CurrentAdmin,
     database_session: DatabaseSession,
 ) -> list[ActivityLog]:
     get_service_request_or_404(

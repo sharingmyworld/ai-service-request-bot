@@ -61,9 +61,9 @@ def create_request(
 
 
 def test_admin_service_requests_requires_authentication(
-    client: TestClient,
+    anonymous_client: TestClient,
 ) -> None:
-    response = client.get(
+    response = anonymous_client.get(
         "/admin/service-requests"
     )
 
