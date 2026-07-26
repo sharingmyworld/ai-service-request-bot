@@ -1,4 +1,7 @@
 from app.schemas.activity_log import ActivityLogRead
+from app.schemas.admin_dashboard import (
+    AdminDashboardResponse,
+)
 from app.schemas.admin_review import (
     ServiceRequestApprove,
     ServiceRequestReject,
@@ -30,6 +33,7 @@ from app.schemas.telegram_update import (
 __all__ = [
     "AccessTokenResponse",
     "ActivityLogRead",
+    "AdminDashboardResponse",
     "AdminUserRead",
     "AIServiceRequestAnalysis",
     "PasswordChangeRequest",
