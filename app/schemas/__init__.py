@@ -6,6 +6,9 @@ from app.schemas.admin_review import (
     ServiceRequestApprove,
     ServiceRequestReject,
 )
+from app.schemas.admin_service_requests import (
+    AdminServiceRequestListResponse,
+)
 from app.schemas.admin_user import AdminUserRead
 from app.schemas.ai_analysis import (
     AIServiceRequestAnalysis,
@@ -34,6 +37,7 @@ __all__ = [
     "AccessTokenResponse",
     "ActivityLogRead",
     "AdminDashboardResponse",
+    "AdminServiceRequestListResponse",
     "AdminUserRead",
     "AIServiceRequestAnalysis",
     "PasswordChangeRequest",
